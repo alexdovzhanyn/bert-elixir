@@ -1,7 +1,7 @@
 {
-  "name": "bert-test",
+  "name": "bert-js",
   "version": "1.0.0",
-  "description": "",
+  "description": "BERT (Binary ERlang Term) serialization library for Javascript",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
