@@ -6,6 +6,6 @@ let data = {
   c: 3
 }
 
-let encoded = Bert.encode_object(data)
+let encoded = Bert.encodeObject(data)
 
-console.log(Bert.binary_to_list(encoded))
+console.log(Bert.binaryToList(encoded))

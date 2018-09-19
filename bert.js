@@ -10,455 +10,376 @@
 // - http://www.erlang-factory.com/upload/presentations/36/tom_preston_werner_erlectricity.pdf
 // - http://www.erlang.org/doc/apps/erts/erl_ext_dist.html#8
 
-class BERT {
-  constructor() {
-    super()
-    this.BERT_START = String.fromCharCode(131);
-  	this.SMALL_ATOM = String.fromCharCode(115);
-  	this.ATOM = String.fromCharCode(100);
-  	this.BINARY = String.fromCharCode(109);
-  	this.SMALL_INTEGER = String.fromCharCode(97);
-  	this.INTEGER = String.fromCharCode(98);
-  	this.SMALL_BIG = String.fromCharCode(110);
-  	this.LARGE_BIG = String.fromCharCode(111);
-  	this.FLOAT = String.fromCharCode(99);
-  	this.STRING = String.fromCharCode(107);
-  	this.LIST = String.fromCharCode(108);
-  	this.SMALL_TUPLE = String.fromCharCode(104);
-  	this.LARGE_TUPLE = String.fromCharCode(105);
-  	this.NIL = String.fromCharCode(106);
-  	this.ZERO = String.fromCharCode(0);
-    this.ZERO_CHAR = String.fromCharCode(48);
-  }
+const BERT_START = String.fromCharCode(131)
+const SMALL_ATOM = String.fromCharCode(115)
+const ATOM = String.fromCharCode(100)
+const BINARY = String.fromCharCode(109)
+const SMALL_INTEGER = String.fromCharCode(97)
+const INTEGER = String.fromCharCode(98)
+const SMALL_BIG = String.fromCharCode(110)
+const LARGE_BIG = String.fromCharCode(111)
+const FLOAT = String.fromCharCode(99)
+const STRING = String.fromCharCode(107)
+const LIST = String.fromCharCode(108)
+const SMALL_TUPLE = String.fromCharCode(104)
+const LARGE_TUPLE = String.fromCharCode(105)
+const NIL = String.fromCharCode(106)
+const ZERO = String.fromCharCode(0)
+const ZERO_CHAR = String.fromCharCode(48)
 
-  atom(obj) {
-    this.type = 'Atom'
-    this.value = obj
-    this.toString = () => obj
-  }
+const atom = value => ({ type: 'Atom', value, toString: () => value })
 
-  binary(obj) {
-    this.type = 'Binary'
-    this.value = obj
-    this.toString = () => `<<"${obj}">>`
-  }
+const binary = value => ({ type: 'Binary', value, toString: () => `<<"${value}">>` })
 
-  tuple(arr) {
-    this.type = 'Tuple'
-    this.length = arr.length
-    this.value = arr
+const encode = obj => BERT_START + encodeInner(obj)
 
-    this.toString = () => `{${arr.join(", ")}}`
-  }
+const encodeString = obj => STRING + intToBytes(obj.length, 2) + obj
 
-  encode(obj) {
-    return this.BERT_START + this.encode_inner(obj)
-  }
+const encodeBoolean = obj => encodeInner(tuple(atom('bert'), atom(obj ? 'true' : 'false')))
 
-  encode_inner(obj) {
-    if (obj === undefined) throw new Error("Cannot encode undefined values.")
-  	var func = 'encode_' + typeof(obj)
-	  return this[func](obj)
-  }
+const encodeAtom = ({ value }) => ATOM + intToBytes(value.length, 2) + value
 
-  decode(s) {
-    if (S[0] !== this.BERT_START) throw ("Not a valid BERT.")
+const encodeBinary = ({ value }) => BINARY + intToBytes(value.length, 4) + value
 
-    const obj = this.decode_inner(s.substring(1))
+const decodeSmallInteger = s => ({ value: s.charCodeAt(0), rest: s.substring(1) })
 
-    if (obj.rest !== "") throw ("Invalid BERT.")
+const decodeInteger = (s, count) => ({ value: bytesToInt(s, count), rest: s.substring(count) })
 
-    return obj.value
-  }
+const encodeAssociativeArray = obj => encodeArray(Object.keys(obj).map(k => tuple(atom(k), obj[k])))
 
-  encode_string(obj) {
-    return this.STRING + this.int_to_bytes(obj.length, 2) + obj
-  }
+const tuple = (...arr) => {
+  let res = { type: 'Tuple', length: arr.length, value: arr, toString: () => `{${arr.join(", ")}}`, items: [] }
 
-  encode_boolean(obj) {
-    if (obj) {
-      return this.encode_inner(this.tuple(this.atom("bert"), this.atom("true")))
-    } else {
-      return this.encode_inner(this.tuple(this.atom("bert"), this.atom("false")))
-    }
-  }
+  for (var i = 0; i < arr.length; i++) {
+		res.items.push(arr[i])
+	}
 
-  encode_number(obj) {
-    const isInteger = obj % 1 === 0
+  return res
+}
 
-    // Float
-    if (!isInteger) return this.encode_float(obj)
+const encodeInner = obj => {
+  if (obj === undefined) throw new Error('Cannot encode undefined values.')
 
-    // Small int
-    if (isInteger && obj >= 0 && obj <= 256) return this.SMALL_INTEGER + this.int_to_bytes(obj, 1)
-
-    // 4 byte int
-    if (isInteger && obj >= -134217728 && obj <= 134217727) return this.INTEGER + this.int_to_bytes(obj, 4)
-
-    obj = this.bignum_to_bytes(obj)
-
-    if (obj.length < 256) {
-      return this.SMALL_BIG + this.int_to_bytes(obj.length - 1, 1) + obj
-    } else {
-      return this.LARGE_BIG + this.int_to_bytes(obj.length - 1, 4) + obj
-    }
-  }
-
-  encode_float(obj) {
-    obj = obj.toExponential(20)
-
-    const match = /([^e]+)(e[+-])(\d+)/.exec(obj)
-    let exponentialPart = match[3].length == 1 ? "0" + match[3] : match[3]
-
-    s = match[1] + match[2] + exponentialPart
-
-    s += this.ZERO.repeat(31 - s.length)
-
-    return this.FLOAT + s
-  }
-
-  encode_object(obj) {
-    if (obj === null) return this.encode_inner(this.atom("null"))
-
-  	if (obj.type === "Atom") return this.encode_atom(Obj)
-
-  	if (obj.type === "Binary") return this.encode_binary(Obj)
-
-  	if (Obj.type === "Tuple") return this.encode_tuple(Obj)
-
-  	// Check if it's an array...
-  	if (Obj.constructor.toString().indexOf("Array") !== -1) return this.encode_array(Obj)
-
-  	// Treat the object as an associative array...
-  	return this.encode_associative_array(Obj);
-  }
-
-  encode_atom(obj) {
-    return this.ATOM + this.int_to_bytes(obj.value.length, 2) + obj.value
-  }
-
-  encode_binary(obj) {
-    return this.BINARY + this.int_to_bytes(obj.value.length, 4) + obj.value
-  }
-
-  encode_tuple(obj) {
-    let s
-
-    if (obj.length < 256) {
-      s = this.SMALL_TUPLE + this.int_to_bytes(obj.length, 1)
-    } else {
-      s = this.LARGE_TUPLE + this.int_to_bytes(obj.length, 4)
-    }
-
-    return s + obj.reduce((acc, curr) => acc + this.encode_inner(curr), '')
-  }
-
-  encode_array(obj) {
-    if (obj.length === 0) {
-      return this.encode_inner(this.tuple(this.atom('bert'), this.atom('nil')))
-    }
-
-    let s = this.LIST + this.int_to_bytes(obj.length, 4)
-
-    return s + obj.reduce((acc, curr) => acc + this.encode_inner(curr), '') + this.NIL
-  }
-
-  encode_associative_array(obj) {
-    let arr = Object.keys(obj).map(k => this.tuple(this.atom(key), Obj[key]))
-    return this.encode_array(arr)
-  }
-
-  decode_inner(s) {
-    const type = s[0]
-
-    s = s.substring(1)
-
-    switch (type) {
-  	case this.SMALL_ATOM:
-  		return this.decode_atom(s, 1)
-  	case this.ATOM:
-  		return this.decode_atom(s, 2)
-  	case this.BINARY:
-  		return this.decode_binary(s)
-  	case this.SMALL_INTEGER:
-  		return this.decode_small_integer(s)
-  	case this.INTEGER:
-  		return this.decode_integer(s, 4)
-  	case this.SMALL_BIG:
-  		return this.decode_big(s, 1)
-  	case this.LARGE_BIG:
-  		return this.decode_big(s, 4)
-  	case this.FLOAT:
-  		return this.decode_float(s)
-  	case this.STRING:
-  		return this.decode_string(s)
-  	case this.LIST:
-  		return this.decode_list(s)
-  	case this.SMALL_TUPLE:
-  		return this.decode_tuple(s, 1)
-  	case this.LARGE_TUPLE:
-  		return this.decode_large_tuple(s, 4)
-  	case this.NIL:
-  		return this.decode_nil(s)
-  	default:
-  		throw ("Unexpected BERT type: " + s.charCodeAt(0))
-  	}
-  }
-
-  decode_atom(s, count) {
-    let size = this.bytes_to_int(s, count)
-
-    s = s.substring(count)
-    let value = s.substring(0, size)
-
-    return { value: this.atom(value), rest: s.substring(size) }
-  }
-
-  decode_binary(s) {
-    let size = this.bytes_to_int(s, 4)
-    s = s.substring(4)
-
-    return { value: this.binary(s.substring(0, size)), rest: s.substring(size) }
-  }
-
-  decode_small_integer(s) {
-    let value = s.charCodeAt(0)
-
-    return { value, rest: s.substring(1) }
-  }
-
-  decode_integer(s, count) {
-    let value = this.bytes_to_int(s, count)
-
-    return { value, rest: s.substring(count) }
-  }
-
-  decode_big(s, count) {
-    let size = this.bytes_to_int(s, count)
-    s = s.substring(count)
-
-    value = this.bytes_to_bignum(s, size)
-
-    return { value, rest: s.substring(size + 1) }
-  }
-
-  decode_float(s) {
-    return { value: parseFloat(s.substring(0, 31)), rest: s.substring(31) }
-  }
-
-  decode_string(s) {
-    let size = this.bytes_to_int(s, 2)
-
-    s = s.substring(2)
-
-    return { value: s.subtring(0, size), rest: s.substring(size) }
-  }
-
-  decode_list(s) {
-
+  switch(typeof(obj)) {
+  case 'string': return encodeString(obj)
+  case 'boolean': return encodeBoolean(obj)
+  case 'atom': return encodeAtom(obj)
+  case 'binary': return encodeBinary(obj)
+  case 'number': return encodeNumber(obj)
+  case 'float': return encodeFloat(obj)
+  case 'object': return encodeObject(obj)
+  case 'tuple': return encodeTuple(obj)
+  case 'array': return encodeArray(obj)
+  default: return
   }
 }
 
+const decode = s => {
+  if (s[0] !== BERT_START) throw ('Not a valid BERT.')
 
+  const obj = decodeInner(s.substring(1))
 
-// - DECODING
+  if (obj.rest !== '') throw ('Invalid BERT.')
 
+  return obj.value
+}
 
-BertClass.prototype.decode_list = function (S) {
-	var Size, i, El, LastChar, Arr = [];
-	Size = this.bytes_to_int(S, 4);
-	S = S.substring(4);
-	for (i = 0; i < Size; i++) {
-		El = this.decode_inner(S);
-		Arr.push(El.value);
-		S = El.rest;
-	}
-	LastChar = S[0];
-	if (LastChar !== this.NIL) {
-		throw ("List does not end with NIL!");
-	}
-	S = S.substring(1);
-	return {
-		value: Arr,
-		rest: S
-	};
-};
+const encodeNumber = obj => {
+  const isInteger = obj % 1 === 0
 
-BertClass.prototype.decode_tuple = function (S, Count) {
-	var Size, i, El, Arr = [];
-	Size = this.bytes_to_int(S, Count);
-	S = S.substring(Count);
-	for (i = 0; i < Size; i++) {
-		El = this.decode_inner(S);
-		Arr.push(El.value);
-		S = El.rest;
-	}
-	if (Size >= 2) {
-		var Head = Arr[0];
-		if (typeof Head === 'object' && Head.type === 'Atom'
-		    && Head.value === "bert") {
-			var Kind = Arr[1];
-			if (typeof Kind !== 'object' || Kind.type !== 'Atom') {
-				throw ("Invalid {bert, _} tuple!");
-			}
-			switch (Kind.value) {
-			case "true":
-				return {value: true, rest: S};
-			case "false":
-				return {value: false, rest: S};
-			case "nil":
-				return {value: [], rest: S};
-			case "time":
-			case "dict":
-			case "regex":
-				throw ("TODO: decode " + Kind.Value);
-			default:
-				throw ("Invalid {bert, " +
-				    Kind.Value.toString() + "} tuple!");
-			}
-		}
-	}
-	return {
-		value: this.tuple.apply(this,Arr),
-		rest: S
-	};
-};
+  // Float
+  if (!isInteger) return encodeFloat(obj)
 
-BertClass.prototype.decode_nil = function (S) {
-	// nil is an empty list
-	return {
-		value: [],
-		rest: S
-	};
-};
+  // Small int
+  if (isInteger && obj >= 0 && obj < 256) return SMALL_INTEGER + intToBytes(obj, 1)
 
+  // 4 byte int
+  if (isInteger && obj >= -134217728 && obj <= 134217727) return INTEGER + intToBytes(obj, 4)
 
+  obj = bignumToBytes(obj)
 
-// - UTILITY FUNCTIONS -
+  if (obj.length < 256) {
+    return SMALL_BIG + intToBytes(obj.length - 1, 1) + obj
+  } else {
+    return LARGE_BIG + intToBytes(obj.length - 1, 4) + obj
+  }
+}
+
+const encodeFloat = obj => {
+  obj = obj.toExponential(20)
+
+  const match = /([^e]+)(e[+-])(\d+)/.exec(obj)
+  let exponentialPart = match[3].length == 1 ? "0" + match[3] : match[3]
+
+  return FLOAT + match[1] + match[2] + exponentialPart + ZERO.repeat(31 - s.length)
+}
+
+const encodeObject = obj => {
+  if (obj === null) return encodeInner(atom('null'))
+
+  if (obj.type === 'Atom') return encodeAtom(obj)
+
+  if (obj.type === 'Binary') return encodeBinary(obj)
+
+  if (obj.type === 'Tuple') return encodeTuple(obj)
+
+  // Check if it's an array...
+  if (obj.constructor.toString().includes('Array')) return encodeArray(obj)
+
+  // Treat the object as an associative array...
+  return encodeAssociativeArray(obj)
+}
+
+const encodeTuple = obj => {
+  let s
+
+  if (obj.length < 256) {
+    s = SMALL_TUPLE + intToBytes(obj.length, 1)
+  } else {
+    s = LARGE_TUPLE + intToBytes(obj.length, 4)
+  }
+
+  return s + obj.items.reduce((acc, curr) => acc + encodeInner(curr), '')
+}
+
+const encodeArray = obj => {
+  if (obj.length === 0) return encodeInner(tuple(atom('bert'), atom('nil')))
+
+  return LIST + intToBytes(obj.length, 4) + obj.reduce((acc, curr) => acc + encodeInner(curr), '') + NIL
+}
+
+const decodeInner = s => {
+  const type = s[0]
+
+  s = s.substring(1)
+
+  switch(type) {
+    case SMALL_ATOM: return decodeAtom(s, 1)
+    case ATOM: return decodeAtom(s, 2)
+    case BINARY: return decodeBinary(s)
+    case SMALL_INTEGER: return decodeSmallInteger(s)
+    case INTEGER: return decodeInteger(s, 4)
+    case SMALL_BIG: return decodeBig(s, 1)
+    case LARGE_BIG: return decodeBig(s, 4)
+    case FLOAT: return decodeFloat(s)
+    case STRING: return decodeString(s)
+    case LIST: return decodeList(s)
+    case SMALL_TUPLE: return decodeTuple(s, 1)
+    case LARGE_TUPLE: return decodeLargeTuple(s, 4)
+    case NIL: return decodeNil(s)
+    default: throw(`Unexpected BERT type: ${s.charCodeAt(0)}`)
+  }
+}
+
+const decodeAtom = (s, count) => {
+  let size = bytesToInt(s, count)
+
+  s = s.substring(count)
+  let value = s.substring(0, size)
+
+  return { value: atom(value), rest: s.substring(size) }
+}
+
+const decodeBinary = s => {
+  let size = bytesToInt(s, 4)
+  s = s.substring(4)
+
+  return { value: binary(s.substring(0, size)), rest: s.substring(size) }
+}
+
+const decodeBig = (s, count) => {
+  let size = bytesToInt(s, count)
+  s = s.substring(count)
+
+  return { value: bytesToBignum(s, size), rest: s.substring(size + 1) }
+}
+
+const decodeFloat = s => ({ value: parseFloat(s.substring(0, 31)), rest: s.substring(31) })
+
+const decodeString = s => {
+  let size = bytesToInt(s, 2)
+  s = s.substring(2)
+
+  return { value: s.substring(0, size), rest: s.substring(size) }
+}
+
+const decodeList = s => {
+  let size = bytesToInt(s, 4)
+  let arr = []
+  s = s.subtring(4)
+
+  for (let i = 0; i < size; i++) {
+    let { value, rest } = decodeInner(s)
+    arr.push(value)
+    s = rest
+  }
+
+  if (s[0] !== NIL) throw('List does not end with NIL!')
+
+  s = s.substring(1)
+
+  return { value: arr, rest: s }
+}
+
+const decodeTuple = (s, count) => {
+  let size = bytesToInt(s, count)
+  let arr = []
+  s = s.substring(count)
+
+  for (let i = 0; i < size; i++) {
+    let { value, rest } = decodeInner(s)
+    arr.push(value)
+    s = rest
+  }
+
+  if (size >= 2) {
+    let head = arr[0]
+
+    if (typeof head === 'object' && head.type === 'Atom' && head.value === 'bert') {
+      let kind = arr[1]
+
+      if (typeof kind !== 'object' || kind.type !== 'Atom') throw('Invalid {bert, _} tuple!')
+
+      switch(kind.value) {
+        case 'true': return { value: true, rest: s }
+        case 'true': return { value: false, rest: s }
+        case 'nil': return { value: [], rest: s }
+        case 'time':
+        case 'dict':
+        case 'regex': throw(`TODO: decode ${kind.value}`)
+        default: throw(`Invalid {bert, ${kind.value.toString()}} tuple!`)
+      }
+    }
+  }
+
+  return { value: tuple(value), rest: s }
+}
+
+const decodeNil = s => ({ value: [], rest: s })
 
 // Encode an integer to a big-endian byte-string of length Length.
 // Throw an exception if the integer is too large
 // to fit into the specified number of bytes.
-BertClass.prototype.int_to_bytes = function (Int, Length) {
-	var isNegative, OriginalInt, i, Rem, s = "";
-	isNegative = (Int < 0);
-	if (isNegative) {
-		Int = - Int - 1;
-	}
-	OriginalInt = Int;
-	for (i = 0; i < Length; i++) {
-		Rem = Int % 256;
-		if (isNegative) {
-			Rem = 255 - Rem;
-		}
-		s = String.fromCharCode(Rem) + s;
-		Int = Math.floor(Int / 256);
-	}
-	if (Int > 0) {
-		throw ("Argument out of range: " + OriginalInt);
-	}
-	return s;
-};
+const intToBytes = (int, length) => {
+  let isNegative = int < 0
+  let s = ''
+
+  if (isNegative) {
+    int = -int - 1
+  }
+
+  let originalInt = int
+
+  for (let i = 0; i < length; i++) {
+    rem = isNegative ? 255 - (int % 256) : int % 256
+
+    s = String.fromCharCode(rem) + s
+    int = Math.floor(int / 256)
+  }
+
+  if (int > 0) throw(`Argument out of range: ${originalInt}`)
+
+  return s
+}
 
 // Read a big-endian encoded integer from the first Length bytes
 // of the supplied string.
-BertClass.prototype.bytes_to_int = function (S, Length) {
-	var isNegative, i, n, Num = 0;
-	isNegative = (S.charCodeAt(0) > 128);
-	for (i = 0; i < Length; i++) {
-		n = S.charCodeAt(i);
-		if (isNegative) {
-			n = 255 - n;
-		}
-		if (Num === 0) {
-			Num = n;
-		}
-		else {
-			Num = Num * 256 + n;
-		}
-	}
-	if (isNegative) {
-		Num = -Num - 1;
-	}
-	return Num;
-};
+const bytesToInt = (s, length) => {
+  let isNegative = s.charCodeAt(0) > 128
+  let num = 0
+
+  for (let i = 0; i < length; i++) {
+    let n = isNegative ? 255 - s.charCodeAt(i) : s.charCodeAt(i)
+
+    num = num === 0 ? n : num * 256 + n
+
+    if (isNegative) num = -num - 1
+
+    return num
+  }
+}
 
 // Encode an integer into an Erlang bignum,
 // which is a byte of 1 or 0 representing
 // whether the number is negative or positive,
 // followed by little-endian bytes.
-BertClass.prototype.bignum_to_bytes = function (Int) {
-	var isNegative, Rem, s = "";
-	isNegative = Int < 0;
-	if (isNegative) {
-		Int *= -1;
-		s += String.fromCharCode(1);
-	} else {
-		s += String.fromCharCode(0);
-	}
+const bignumToBytes = int => {
+  let s = ''
+  let isNegative = int < 0
 
-	while (Int !== 0) {
-		Rem = Int % 256;
-		s += String.fromCharCode(Rem);
-		Int = Math.floor(Int / 256);
-	}
+  if (isNegative) {
+    int *= -1
+    s += String.fromCharCode(1)
+  } else {
+    s += String.fromCharCode(0)
+  }
 
-	return s;
-};
+  while (int !== 0) {
+    let rem = int % 256
+    s += String.fromCharCode(rem)
+    int = Math.floor(int / 256)
+  }
+
+  return s
+}
 
 // Encode a list of bytes into an Erlang bignum.
-BertClass.prototype.bytes_to_bignum = function (S, Count) {
-	var isNegative, i, n, Num = 0;
-	isNegative = (S.charCodeAt(0) === 1);
-	S = S.substring(1);
-	for (i = Count - 1; i >= 0; i--) {
-		n = S.charCodeAt(i);
-		if (Num === 0) {
-			Num = n;
-		}
-		else {
-			Num = Num * 256 + n;
-		}
-	}
-	if (isNegative) {
-		return Num * -1;
-	}
-	return Num;
-};
+const bytesToBignum = (s, count) => {
+  let num = 0
+  s = s.substring(1)
+
+  for (i = count - 1; i >= 0; i--) {
+    let n = s.charCodeAt(i)
+
+    num = num === 0 ? n : num * 256 + n
+  }
+
+  if (s.charCodeAt(0) === 1) return num * -1
+
+  return num
+}
 
 // Convert an array of bytes into a string.
-BertClass.prototype.bytes_to_string = function (Arr) {
-	var i, s = "";
-	for (i = 0; i < Arr.length; i++) {
-		s += String.fromCharCode(Arr[i]);
-	}
-	return s;
-};
-
-// - TESTING -
+const bytesToString = arr => arr.reduce((acc, curr) => acc + String.fromCharCode(curr), '')
 
 // Pretty Print a byte-string in Erlang binary form.
-BertClass.prototype.pp_bytes = function (Bin) {
-	var i, s = "";
-	for (i = 0; i < Bin.length; i++) {
-		if (s !== "") {
-			s += ",";
-		}
-		s += "" + Bin.charCodeAt(i);
-	}
-	return "<<" + s + ">>";
-};
+const ppBytes = bin => bin.split('').map(c => c.charCodeAt(0)).join(', ')
 
-// Pretty Print a JS object in Erlang term form.
-BertClass.prototype.pp_term = function (Obj) {
-	return Obj.toString();
-};
+const ppTerm = obj => obj.toString()
 
-BertClass.prototype.binary_to_list = function (Str){
-    var ret = [];
-    for (var i = 0; i < Str.length; i++)
-        ret.push(Str.charCodeAt(i));
-    return ret;
-};
+const binaryToList = str => {
+  let ret = []
 
-module.exports = new BertClass();
+  for (let i = 0; i < str.length; i++) ret.push(str.charCodeAt(i))
+
+  return ret
+}
+
+module.exports = {
+  atom,
+  binary,
+  tuple,
+  encode,
+  encodeString,
+  encodeBoolean,
+  encodeAtom,
+  encodeBinary,
+  decodeSmallInteger,
+  decodeInteger,
+  encodeAssociativeArray,
+  decode,
+  encodeNumber,
+  encodeFloat,
+  encodeObject,
+  encodeTuple,
+  encodeArray,
+  decodeAtom,
+  decodeBinary,
+  decodeBig,
+  decodeFloat,
+  decodeString,
+  decodeList,
+  decodeTuple,
+  decodeNil,
+  binaryToList
+}
