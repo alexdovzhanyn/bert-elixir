@@ -3,9 +3,22 @@
   "version": "1.0.0",
   "description": "BERT (Binary ERlang Term) serialization library for Javascript",
   "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "(https://github.com/ElixiumNetwork/bert-js.git)"
+  },
+  "keywords": [
+    "erlang",
+    "elixir",
+    "data",
+    "serialization"
+  ],
+  "author": "Alex Dovzhanyn",
   "license": "MIT"
 }

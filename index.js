@@ -200,7 +200,7 @@ const decodeCharlist = s => {
 const decodeList = s => {
   let size = bytesToInt(s, 4)
   let arr = []
-  s = s.subtring(4)
+  s = s.substring(4)
 
   for (let i = 0; i < size; i++) {
     let { value, rest } = decodeInner(s)
@@ -255,8 +255,8 @@ const decodeTuple = (s, count) => {
 
       switch(kind.value) {
         case 'true': return { value: true, rest: s }
-        case 'true': return { value: false, rest: s }
-        case 'nil': return { value: [], rest: s }
+        case 'false': return { value: false, rest: s }
+        case 'nil': return { value: null, rest: s }
         case 'time':
         case 'dict':
         case 'regex': throw(`TODO: decode ${kind.value}`)
@@ -360,6 +360,7 @@ const ppBytes = bin => bin.split('').map(c => c.charCodeAt(0)).join(', ')
 
 const ppTerm = obj => obj.toString()
 
+// Convert string of byes to an array
 const binaryToList = str => {
   let ret = []
 
@@ -391,5 +392,7 @@ module.exports = {
   decodeList,
   decodeTuple,
   decodeNil,
-  binaryToList
+  binaryToList,
+  ppBytes,
+  ppTerm
 }

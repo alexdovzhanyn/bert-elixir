@@ -5,9 +5,76 @@ Binary ERlang Term serialization library for Javascript
 ## Usage
 --------------------------------
 
+### Example Usage
+
+When needing to consume data in Javascript from an Erlang system, the Erlang
+system can simply send encoded binary data:
+
+*Elixir/Erlang:*
+```elixir
+# This is Elixir code, but function calls will be very similar in Erlang
+
+personData = %{
+  name: "Bob",
+  age: 32,
+  eye_color: "Brown",
+  personality_traits: [
+    "Funny",
+    "Inquisitive"
+  ]
+}
+
+# Convert to binary
+:erlang.term_to_binary(personData)
+
+# .... Code that sends binary data to javascript
+```
+
+*Javascript:*
+```javascript
+// ... Code that receives binary data from erlang/elixir and stores it
+// to a variable, personData
+
+const Bert = require('bert-elixir')
+
+const decodedPerson = Bert.decode(personData)
+/*
+  => { age: 32,
+      eye_color: 'Brown',
+      name: 'Bob',
+      personality_traits: [ 'Funny', 'Inquisitive' ]
+    }
+*/
+```
+
+Modifying this data and sending it back to Erlang/Elixir would be as simple as:
+
+*Javascript:*
+```javascript
+// ... Assuming we have a decodedPerson object
+
+decodedPerson.age = 38
+decodedPerson.name = 'Robert'
+
+const reEncodedPerson = Bert.encode(decodedPerson)
+
+// ... Send the binary
+```
+
+*Elixir/Erlang:*
+```elixir
+# ... After having received binary data and setting it to variable modifiedPersonData:
+
+decodedPerson = :erlang.binary_to_term(modifiedPersonData)
+
+# => %{ age: 38, eye_color: "Brown", name: "Robert", personality_traits: ["Funny", "Inquisitive"] }
+```
+
 ### Encoding
 
 #### Maps (Elixir)
+
+Javascript objects map directly to Maps in Erlang
 
 ```javascript
 const Bert = require('bert-elixir')
@@ -17,11 +84,26 @@ const mapToEncode = { a: 1, b: "hello!", c: [1, 2, 3] }
 const encodedMap = Bert.encode(mapToEncode)
 
 // BinaryToList shows individual bytes as a javascript array
-console.log(Bert.binaryToList(encodedMap)
+console.log(Bert.binaryToList(encodedMap))
 // => [ 131, 116, 0, 0, 0, 3, 100, 0, 1, 97, 97, 1, 100, 0, 1, 98, 109, 0, 0, 0, 6, 104, 101, 108, 108, 111, 33, 100, 0, 1, 99, 108, 0, 0, 0, 3, 97, 1, 97, 2, 97, 3, 106 ]
 ```
 
-- [ ] Todo: Write docs for rest of data types
+#### Lists
+
+Javascript arrays map to Erlang Lists
+
+```javascript
+const Bert = require('bert-elixir')
+
+const arrayToEncode = ['hello', 'world', 32, [{ key: "value" }]]
+const encodedArray = Bert.encode(arrayToEncode)
+
+console.log(Bert.binaryToList(encodedArray))
+```
+
+Todo:
+- [ ] Write docs for rest of data types
+- [ ] Return `nil` as `null` instead of `'nil'`
 
 --------------------------------
 ### Decoding
