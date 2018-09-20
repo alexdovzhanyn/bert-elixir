@@ -10,7 +10,7 @@ Binary ERlang Term serialization library for Javascript
 #### Maps (Elixir)
 
 ```javascript
-const Bert = require('bert')
+const Bert = require('bert-elixir')
 
 // To encode a javascript object to an elixir map:
 const mapToEncode = { a: 1, b: "hello!", c: [1, 2, 3] }
@@ -29,7 +29,7 @@ console.log(Bert.binaryToList(encodedMap)
 Decoding is typically much simpler than encoding. Just pass the given Binary Erlang Term:
 
 ```javascript
-const Bert = require('bert')
+const Bert = require('bert-elixir')
 
 // We're showing the term as an array of bytes here for clarity.
 // You'll more likely have a string
