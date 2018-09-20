@@ -20,6 +20,9 @@ const encodedMap = Bert.encode(mapToEncode)
 console.log(Bert.binaryToList(encodedMap)
 // => [ 131, 116, 0, 0, 0, 3, 100, 0, 1, 97, 97, 1, 100, 0, 1, 98, 109, 0, 0, 0, 6, 104, 101, 108, 108, 111, 33, 100, 0, 1, 99, 108, 0, 0, 0, 3, 97, 1, 97, 2, 97, 3, 106 ]
 ```
+
+- [ ] Todo: Write docs for rest of data types
+
 --------------------------------
 ### Decoding
 
