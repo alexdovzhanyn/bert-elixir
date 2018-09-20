@@ -1,6 +1,6 @@
 # BERT
 
-Binary ERlang Term serialization library for Javascript
+Binary ERlang Term serialization library for Javascript. (An updated version of [this repo](https://github.com/rustyio/BERT-JS) )
 
 ## Usage
 --------------------------------
