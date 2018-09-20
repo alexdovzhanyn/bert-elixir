@@ -9,7 +9,6 @@ let data = {
 }
 
 let data2 = [131, 107, 0, 8, 97, 32, 115, 116, 114, 105, 110, 103].map(x => String.fromCharCode(x)).join('')
-console.log(data2)
 
 let encoded = Bert.encode(data)
 let decoded1 = Bert.decode(encoded)

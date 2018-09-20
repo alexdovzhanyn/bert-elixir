@@ -226,17 +226,10 @@ const decodeMap = s => {
 
     let { value, rest } = decodeInner(s)
 
-    console.log("atom: ", atom)
-    console.log("value: ", value)
-
     obj[atom] = value
 
     s = rest
-
-    if (s) console.log("s: ", ppBytes(s))
   }
-
-  console.log("res: ", obj)
 
   return { value: obj, rest: s }
 }
