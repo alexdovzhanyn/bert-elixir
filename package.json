@@ -1,6 +1,6 @@
 {
   "name": "bert-elixir",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BERT (Binary ERlang Term) serialization library for Javascript",
   "main": "index.js",
   "directories": {
