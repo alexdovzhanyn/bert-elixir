@@ -22,11 +22,11 @@ const charlist = value => ({ type: 'Charlist', value, toString: () => value })
 
 const encode = obj => BERT_START + encodeInner(obj)
 
-const encodeCharlist = obj => CHARLIST + intToBytes(obj.length, 2) + encodeInner(charlist(obj))
+const encodeCharlist = ({ value }) => CHARLIST + intToBytes(value.length, 2) + value
 
 const encodeString = obj => STRING + intToBytes(obj.length, 4) + obj
 
-const encodeBoolean = obj => encodeInner(tuple(atom('bert'), atom(obj ? 'true' : 'false')))
+const encodeBoolean = obj => encodeInner(atom(obj ? 'true' : 'false'))
 
 const encodeAtom = ({ value }) => ATOM + intToBytes(value.length, 2) + value
 
@@ -99,7 +99,9 @@ const encodeFloat = obj => {
   const match = /([^e]+)(e[+-])(\d+)/.exec(obj)
   let exponentialPart = match[3].length == 1 ? "0" + match[3] : match[3]
 
-  return FLOAT + match[1] + match[2] + exponentialPart + ZERO.repeat(31 - s.length)
+  let num = match[1] + match[2] + exponentialPart
+
+  return FLOAT + num + ZERO.repeat(32 - num.length)
 }
 
 const encodeObject = obj => {
@@ -108,6 +110,8 @@ const encodeObject = obj => {
   if (obj.type === 'Atom') return encodeAtom(obj)
 
   if (obj.type === 'Tuple') return encodeTuple(obj)
+
+  if (obj.type === 'Charlist') return encodeCharlist(obj)
 
   // Check if it's an array...
   if (obj.constructor.toString().includes('Array')) return encodeArray(obj)
@@ -372,6 +376,7 @@ const binaryToList = str => {
 module.exports = {
   atom,
   tuple,
+  charlist,
   encode,
   encodeString,
   encodeBoolean,

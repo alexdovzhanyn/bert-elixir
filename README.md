@@ -104,6 +104,7 @@ console.log(Bert.binaryToList(encodedArray))
 Todo:
 - [ ] Write docs for rest of data types
 - [ ] Return `nil` as `null` instead of `'nil'`
+- [ ] Add support for NEW_FLOAT_EXT
 
 --------------------------------
 ### Decoding
