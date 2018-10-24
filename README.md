@@ -65,10 +65,12 @@ const reEncodedPerson = Bert.encode(decodedPerson)
 ```elixir
 # ... After having received binary data and setting it to variable modifiedPersonData:
 
-decodedPerson = :erlang.binary_to_term(modifiedPersonData)
+decodedPerson = :erlang.binary_to_term(modifiedPersonData, [:safe])
 
 # => %{ age: 38, eye_color: "Brown", name: "Robert", personality_traits: ["Funny", "Inquisitive"] }
 ```
+
+safe option should be always used when decoding an untrusted input, make also sure to have already all required atoms in the atoms table.
 
 ### Encoding
 
