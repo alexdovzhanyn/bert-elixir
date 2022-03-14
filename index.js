@@ -269,7 +269,7 @@ const decodeTuple = (s, count) => {
     }
   }
 
-  return { value: tuple(value), rest: s }
+  return { value: tuple(arr), rest: s }
 }
 
 const decodeNil = s => ({ value: [], rest: s })
