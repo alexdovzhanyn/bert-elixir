@@ -9,13 +9,11 @@ describe('bert', () => {
   })
 
   it ('can decode a tuple', () => {
+    // decode this tuple...
     // const tuple = Bert.tuple([
     //   Bert.atom('myAtom'),
     //   1
     // ]);
-    // const encodedTuple = Bert.encode(tuple);
-    // const binaryTuple = Bert.binaryToList(encodedTuple);
-    // expect(binaryTuple).toEqual('foo');
 
     const binaryAtom = [131, 104, 1, 108, 0, 0, 0, 2, 100, 0, 6, 109, 121, 65, 116, 111, 109, 97, 1, 106];
     const decodedAtom = Bert.decode(binaryAtom.map(x => String.fromCharCode(x)).join(''));
