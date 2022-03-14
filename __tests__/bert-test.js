@@ -16,7 +16,7 @@ describe('bert', () => {
     // ]);
 
     const binaryTuple = [131, 104, 1, 108, 0, 0, 0, 2, 100, 0, 6, 109, 121, 65, 116, 111, 109, 97, 1, 106];
-    const decodedTuple = Bert.decode(binaryAtom.map(x => String.fromCharCode(x)).join(''));
+    const decodedTuple = Bert.decode(binaryTuple.map(x => String.fromCharCode(x)).join(''));
     expect(decodedTuple.length).toEqual(1)
     expect(decodedTuple.type).toEqual('Tuple')
     expect(decodedTuple.value[0][0][0].type).toEqual('Atom')
