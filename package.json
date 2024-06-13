@@ -11,13 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "(https://github.com/ElixiumNetwork/bert-js.git)"
+    "url": "(https://github.com/alexdovzhanyn/bert-elixir.git)"
   },
   "keywords": [
     "erlang",
     "elixir",
     "data",
-    "serialization"
+    "serialization",
+    "bert",
+    "term",
+    "binary"
   ],
   "author": "Alex Dovzhanyn",
   "license": "MIT",
